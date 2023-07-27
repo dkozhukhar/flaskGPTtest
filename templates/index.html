@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Chat with GPT-3</title>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <style>
+        #chatBox {
+            height: 300px;
+            overflow-y: auto;
+            border: 1px solid black;
+            padding: 10px;
+        }
+
+        textarea {
+            width: 100%;
+            min-height: 20px;
+            max-height: 100px;
+            overflow: auto;
+            resize: none;
+        }
+        
+        .system {
+            color: red;
+        }
+
+        .user {
+            color: green;
+        }
+
+        .assistant {
+            color: blue;
+        }
+
+        .function {
+            color: magenta;
+        }
+    </style>
+</head>
+<body>
+    <form id="chatForm">
+        <label for="modelName">Model:</label><br>
+        <input type="text" id="modelName" value="gpt-3.5-turbo"><br>
+        <label for="systemMessage">System message:</label><br>
+        <textarea id="systemMessage" required>You are a angry mastermind assistant. Your should print your anger level after each message in format [ANGER LEVEL]:[Value]</textarea><br>
+        <label for="messageInput">Your message:</label><br>
+        <textarea id="messageInput" placeholder="Type your message here" required></textarea>
+        <button type="submit">Start New Conversation</button>
+        <button type="button" id="addUserMessage">Add User Message</button>
+        <button type="button" id="addSystemMessage">Add System Message</button>
+    </form>
+    <div id="chatBox"></div>
+
+    <script>
+        $(document).ready(function() {
+            $('#messageInput').focus();
+        });
+
+        $(window).on('focus', function() {
+            $('#messageInput').focus();
+        });
+
+        function postMessage(role) {
+            var modelName = $('#modelName').val();
+            var systemMessage = $('#systemMessage').val();
+            var userMessage = $('#messageInput').val();
+            $('#chatBox').append('<p class="' + role + '">' + role.charAt(0).toUpperCase() + role.slice(1) + ': ' + (role === 'system' ? systemMessage : userMessage) + '</p>');
+            $('#chatBox').scrollTop($('#chatBox')[0].scrollHeight);
+            $('#chatBox').append('<p class="assistant">ChatGPT: ...loading</p>');
+            var loadingMsg = $('#chatBox').children().last();
+            $.post('/', {model: modelName, role: role, system: systemMessage, message: userMessage}, function(data) {
+                loadingMsg.text('ChatGPT: ' + data.message);
+                $('#messageInput').val('');
+                $('#chatBox').scrollTop($('#chatBox')[0].scrollHeight);
+                if (data.usage) {
+                    $('#chatBox').append('<p class="system">Tokens used: ' + data.usage.total_tokens + '</p>');
+                    $('#chatBox').scrollTop($('#chatBox')[0].scrollHeight);
+                }
+            });
+        }
+
+        $('#chatForm').on('submit', function(event) {
+            event.preventDefault();
+            $('#chatBox').html('');
+            postMessage('user');
+        });
+
+        $('#addUserMessage').on('click', function() {
+            postMessage('user');
+        });
+
+        $('#addSystemMessage').on('click', function() {
+            postMessage('system');
+        });
+
+        $('#messageInput').keypress(function(e){
+            if(e.keyCode==13 && !e.shiftKey){
+                e.preventDefault();
+                postMessage('user');
+            }
+        });
+    </script>
+</body>
+</html>
